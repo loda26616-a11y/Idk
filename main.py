@@ -13,8 +13,8 @@ from datetime import datetime
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 APK_URL = os.environ.get("APK_URL")
-VIP_CHANNEL_URL = os.environ.get("VIP_CHANNEL_URL", "https://t.me/yourchannel")
-ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
+VIP_CHANNEL_URL = os.environ.get("VIP_CHANNEL_URL")
+BOT_USERNAME = os.environ.get("BOT_USERNAME")
 
 USERS_FILE = "users.json"
 WELCOME_IMAGE_URL = "https://kommodo.ai/i/lk66ZvAY1u3vzHXU9aLN"
@@ -55,113 +55,100 @@ def fetch_apk():
     if not APK_URL:
         print("APK_URL not set ❌")
         return
-
     try:
-        print("Downloading APK...")
         res = requests.get(APK_URL, timeout=120)
         res.raise_for_status()
         APK_CACHE = res.content
         print("APK cached ✅")
     except Exception as e:
-        print("APK download error:", e)
+        print("APK error:", e)
+
+
+# ================= SEND APK =================
+async def send_apk(user_id, context):
+    if not APK_CACHE:
+        return
+
+    apk_btn = InlineKeyboardMarkup([
+        [InlineKeyboardButton("GET SECRET APK ✅", url=f"https://t.me/{BOT_USERNAME}?start=apk")]
+    ])
+
+    file = BytesIO(APK_CACHE)
+    file.name = "premium.apk"
+
+    await context.bot.send_document(
+        chat_id=user_id,
+        document=file,
+        filename="premium.apk",
+        caption=(
+            "✅ 100% BEST APK IN WHOLE TELEGRAM 💥\n\n"
+            "( ONLY FOR PREMIUM USERS ⚡️ )\n\n"
+            "HOW TO USE - https://t.me/JaiclubNumberHack/5\n\n"
+            "FOR HELP @Rd_hereee"
+        ),
+        reply_markup=apk_btn
+    )
 
 
 # ================= JOIN REQUEST =================
 async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.chat_join_request.from_user
+    chat_id = update.chat_join_request.chat.id
 
-    for _ in range(3):
-        try:
-            users = load_users()
-            add_user(user, users)
+    try:
+        # ✅ approve request
+        await context.bot.approve_chat_join_request(chat_id, user.id)
 
-            # 🔥 Welcome Button
-            btn = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔥 VIP CHANNEL 🔥", url=VIP_CHANNEL_URL)]
-            ])
+        users = load_users()
+        add_user(user, users)
 
-            # 🚀 Welcome Message
-            await context.bot.send_photo(
-                chat_id=user.id,
-                photo=WELCOME_IMAGE_URL,
-                caption="🚀🔥 WELCOME TO PREMIUM BOT 🔥",
-                reply_markup=btn
-            )
+        # 🔥 VIP button
+        vip_btn = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔥 VIP CHANNEL LINK 🔥", url=VIP_CHANNEL_URL)]
+        ])
 
-            # 📦 Send APK
-            if APK_CACHE:
-                file = BytesIO(APK_CACHE)
-                file.name = "premium.apk"
+        # 🚀 Welcome image + msg
+        await context.bot.send_photo(
+            chat_id=user.id,
+            photo=WELCOME_IMAGE_URL,
+            caption="🚀🔥 WELCOME TO RD TRADERS PREMIUM BOT 🔥",
+            reply_markup=vip_btn
+        )
 
-                await context.bot.send_document(
-                    chat_id=user.id,
-                    document=file,
-                    filename="premium.apk",
-                    caption=(
-                        "✅ 100% BEST APK IN WHOLE TELEGRAM 💥\n\n"
-                        "( ONLY FOR PREMIUM USERS ⚡️ )\n\n"
-                        "HOW TO USE - https://t.me/JaiclubNumberHack/5\n\n"
-                        "FOR HELP @Rd_hereee"
-                    ),
-                    reply_markup=btn
-                )
+        # 📦 APK send
+        await send_apk(user.id, context)
 
-            print(f"User handled: {user.id}")
-            break
+        print(f"User joined: {user.id}")
 
-        except RetryAfter as e:
-            await asyncio.sleep(e.retry_after)
-        except (NetworkError, TimedOut):
-            await asyncio.sleep(5)
-        except Exception as e:
-            print("Error:", e)
-            break
+    except Exception as e:
+        print(f"Join error: {e}")
 
 
-# ================= BROADCAST =================
-async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
-        return
+# ================= START =================
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
 
     users = load_users()
-    text = " ".join(context.args)
+    add_user(user, users)
 
-    success = 0
-    failed = 0
-
-    for u in users:
-        try:
-            await context.bot.send_message(chat_id=u["id"], text=text)
-            success += 1
-            await asyncio.sleep(0.05)
-        except:
-            failed += 1
-
-    await update.message.reply_text(
-        f"✅ Broadcast Done\nSuccess: {success}\nFailed: {failed}"
-    )
+    # 🔁 Deep link: ?start=apk
+    if context.args and context.args[0] == "apk":
+        await send_apk(user.id, context)
+    else:
+        await update.message.reply_text("Click button to get APK 🔥")
 
 
 # ================= MAIN =================
 def main():
-    if not BOT_TOKEN:
-        print("BOT_TOKEN missing ❌")
-        return
-
     print("Bot starting...")
     fetch_apk()
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(ChatJoinRequestHandler(join_request))
-    app.add_handler(CommandHandler("broadcast", broadcast))
+    app.add_handler(CommandHandler("start", start))
 
-    print("Bot running...")
-
-    app.run_polling(
-        drop_pending_updates=True,
-        allowed_updates=["chat_join_request", "message"]
-    )
+    app.run_polling(drop_pending_updates=True)
 
 
 # ================= AUTO RESTART =================
@@ -171,6 +158,5 @@ if __name__ == "__main__":
             main()
         except Exception as e:
             print(f"Crash: {e}")
-            print("Restarting in 10 sec...")
             import time
             time.sleep(10)
