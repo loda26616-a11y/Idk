@@ -3,10 +3,8 @@ from telegram.ext import (
     ApplicationBuilder, ContextTypes, ChatJoinRequestHandler,
     CommandHandler
 )
-from telegram.error import NetworkError, TimedOut, RetryAfter
 import json
 import os
-import asyncio
 import requests
 from io import BytesIO
 from datetime import datetime
@@ -67,6 +65,7 @@ def fetch_apk():
 # ================= SEND APK =================
 async def send_apk(user_id, context):
     if not APK_CACHE:
+        print("APK not available ❌")
         return
 
     apk_btn = InlineKeyboardMarkup([
@@ -74,12 +73,12 @@ async def send_apk(user_id, context):
     ])
 
     file = BytesIO(APK_CACHE)
-    file.name = "premium.apk"
+    file.name = "jai club premium.apk"
 
     await context.bot.send_document(
         chat_id=user_id,
         document=file,
-        filename="premium.apk",
+        filename="jai club premium.apk",
         caption=(
             "✅ 100% BEST APK IN WHOLE TELEGRAM 💥\n\n"
             "( ONLY FOR PREMIUM USERS ⚡️ )\n\n"
@@ -93,12 +92,8 @@ async def send_apk(user_id, context):
 # ================= JOIN REQUEST =================
 async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.chat_join_request.from_user
-    chat_id = update.chat_join_request.chat.id
 
     try:
-        # ✅ approve request
-        await context.bot.approve_chat_join_request(chat_id, user.id)
-
         users = load_users()
         add_user(user, users)
 
@@ -118,7 +113,7 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 📦 APK send
         await send_apk(user.id, context)
 
-        print(f"User joined: {user.id}")
+        print(f"Join request received: {user.id}")
 
     except Exception as e:
         print(f"Join error: {e}")
@@ -131,7 +126,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     users = load_users()
     add_user(user, users)
 
-    # 🔁 Deep link: ?start=apk
     if context.args and context.args[0] == "apk":
         await send_apk(user.id, context)
     else:
