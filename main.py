@@ -16,14 +16,14 @@ APK_URL = os.environ.get("APK_URL")
 VIP_CHANNEL_URL = os.environ.get("VIP_CHANNEL_URL")
 BOT_USERNAME = os.environ.get("BOT_USERNAME")
 LEAVE_MSG_URL = os.environ.get("LEAVE_MSG_URL")
-WELCOME_VIDEO_URL = os.environ.get("WELCOME_VIDEO_URL") # GitHub video link yahan aayega
+WELCOME_VIDEO_URL = os.environ.get("WELCOME_VIDEO_URL") # GitHub video link yahan add karein
 
 USERS_FILE = "users.json"
 LEAVE_IMAGE_URL = "https://kommodo.ai/i/UTlTK3RUQvuCGsM1aCLS"
 
 APK_CACHE = None
 
-# ================= USERS =================
+# ================= USERS DATA MANAGEMENT =================
 def load_users():
     try:
         if os.path.exists(USERS_FILE):
@@ -47,7 +47,7 @@ def add_user(user, users):
         })
         save_users(users)
 
-# ================= APK CACHE =================
+# ================= APK DOWNLOADER =================
 def fetch_apk():
     global APK_CACHE
     try:
@@ -59,11 +59,12 @@ def fetch_apk():
     except Exception as e:
         print("APK error:", e)
 
-# ================= SEND APK =================
+# ================= SEND APK FUNCTION =================
 async def send_apk(user_id, context):
     if not APK_CACHE:
         return
 
+    # Sirf APK wala button rakha hai
     btn = InlineKeyboardMarkup([
         [InlineKeyboardButton("GET SECRET APK ✅", url=f"https://t.me/{BOT_USERNAME}?start=apk")]
     ])
@@ -84,7 +85,7 @@ async def send_apk(user_id, context):
         reply_markup=btn
     )
 
-# ================= JOIN REQUEST =================
+# ================= NEW JOIN REQUEST HANDLER =================
 async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.chat_join_request.from_user
 
@@ -92,19 +93,26 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
         users = load_users()
         add_user(user, users)
 
-        # 1. Welcome Video (Hata diya VIP Button)
+        # 1. Welcome Video with Updated Caption (VIP Link removed)
+        welcome_text = (
+            "💰How To Activate Vip Hack💰\n"
+            "Pls Video Ko Pura Dekhna\n"
+            "      💯 Setup Video 💯"
+        )
+
         await context.bot.send_video(
             chat_id=user.id,
             video=WELCOME_VIDEO_URL,
-            caption="🚀🔥 WELCOME TO RD TRADERS PREMIUM BOT 🔥"
+            caption=welcome_text
         )
 
-        # 2. Send APK
+        # 2. Automatically Send APK
         await send_apk(user.id, context)
         
-        await asyncio.sleep(1)
+        # Messages ke beech gap
+        await asyncio.sleep(1.5)
 
-        # 3. Third Message (Sureshot Channel)
+        # 3. Third Message (Promotional Channel)
         promo_msg = (
             "VIP NUMBER SURESHOT CHANNEL JOIN FREEE 👇🏻👇🏻\n\n"
             "https://t.me/+7SIcw7FkDo5hMjI1\n"
@@ -115,7 +123,7 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print("Join error:", e)
 
-# ================= LEAVE TRACK =================
+# ================= TRACK USER LEAVING =================
 async def track_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         member = update.chat_member
@@ -137,6 +145,7 @@ async def track_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ================= BROADCAST =================
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Only Admin should use this
     if not update.message.reply_to_message:
         await update.message.reply_text("Reply to message to broadcast")
         return
@@ -155,7 +164,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"Broadcast sent to {sent} users ✅")
 
-# ================= START =================
+# ================= START COMMAND =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     users = load_users()
@@ -166,10 +175,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Click button to get APK 🔥")
 
-# ================= MAIN =================
+# ================= MAIN EXECUTION =================
 def main():
     fetch_apk()
-    # Yahan "drop_pending_updates=True" add kiya hai conflict bachane ke liye
+    
+    # drop_pending_updates=True adds safety from conflict errors
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(ChatJoinRequestHandler(join_request))
@@ -177,6 +187,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("broadcast", broadcast))
 
+    print("Bot is running...")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
