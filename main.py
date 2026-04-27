@@ -21,7 +21,10 @@ WELCOME_VIDEO_URL = os.environ.get("WELCOME_VIDEO_URL")
 USERS_FILE = "users.json"
 LEAVE_IMAGE_URL = "https://kommodo.ai/i/UTlTK3RUQvuCGsM1aCLS"
 
-APK_CACHE = None
+# ================= CACHE VARIABLES =================
+# Ab hum puri file ko RAM me save nahi karenge, sirf Telegram ka ID save karenge.
+APK_FILE_ID = None
+VIDEO_FILE_ID = None
 
 # ================= USERS DATA MANAGEMENT =================
 def load_users():
@@ -47,48 +50,55 @@ def add_user(user, users):
         })
         save_users(users)
 
-# ================= APK DOWNLOADER =================
-def fetch_apk():
-    global APK_CACHE
-    try:
-        if APK_URL:
-            res = requests.get(APK_URL, timeout=120)
-            res.raise_for_status()
-            APK_CACHE = res.content
-            print("APK cached ✅")
-    except Exception as e:
-        print("APK error:", e)
-
 # ================= SEND APK FUNCTION =================
 async def send_apk(user_id, context):
-    if not APK_CACHE:
-        return
-
+    global APK_FILE_ID
+    
     btn = InlineKeyboardMarkup([
         [InlineKeyboardButton("GET SECRET APK ✅", url=f"https://t.me/{BOT_USERNAME}?start=apk")]
     ])
 
-    file = BytesIO(APK_CACHE)
-    # File name wahi rahega jo URL se milega
-    original_filename = APK_URL.split("/")[-1] if APK_URL else "premium.apk"
-    file.name = original_filename
-
-    # Updated APK Caption
     apk_caption = (
         "💰Click And Install 💰\n\n"
         "💯 Activate Panel Now 💯"
     )
 
-    await context.bot.send_document(
-        chat_id=user_id,
-        document=file,
-        filename=original_filename,
-        caption=apk_caption,
-        reply_markup=btn
-    )
+    try:
+        if APK_FILE_ID:
+            # Send instantly using Telegram servers (0 Render bandwidth)
+            await context.bot.send_document(
+                chat_id=user_id,
+                document=APK_FILE_ID,
+                caption=apk_caption,
+                reply_markup=btn
+            )
+        else:
+            # Only downloads ONCE when the bot restarts
+            print("Downloading APK for the first time...")
+            res = requests.get(APK_URL, timeout=120)
+            res.raise_for_status()
+            
+            file = BytesIO(res.content)
+            original_filename = APK_URL.split("/")[-1] if APK_URL else "premium.apk"
+            file.name = original_filename
+
+            msg = await context.bot.send_document(
+                chat_id=user_id,
+                document=file,
+                filename=original_filename,
+                caption=apk_caption,
+                reply_markup=btn
+            )
+            # Save the file_id for next users
+            APK_FILE_ID = msg.document.file_id
+            print(f"APK Uploaded. Saved file_id: {APK_FILE_ID}")
+            
+    except Exception as e:
+        print("Error sending APK:", e)
 
 # ================= JOIN REQUEST HANDLER =================
 async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global VIDEO_FILE_ID
     user = update.chat_join_request.from_user
 
     try:
@@ -102,11 +112,13 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "      💯 Setup Video 💯"
         )
 
-        await context.bot.send_video(
-            chat_id=user.id,
-            video=WELCOME_VIDEO_URL,
-            caption=welcome_text
-        )
+        if VIDEO_FILE_ID:
+            # Send video instantly
+            await context.bot.send_video(chat_id=user.id, video=VIDEO_FILE_ID, caption=welcome_text)
+        else:
+            # Send via URL first time, and capture the file_id
+            msg = await context.bot.send_video(chat_id=user.id, video=WELCOME_VIDEO_URL, caption=welcome_text)
+            VIDEO_FILE_ID = msg.video.file_id
 
         # Send APK
         await send_apk(user.id, context)
@@ -177,7 +189,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ================= MAIN EXECUTION =================
 def main():
-    fetch_apk()
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(ChatJoinRequestHandler(join_request))
