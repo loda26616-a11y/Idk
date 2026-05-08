@@ -13,7 +13,7 @@ import asyncio
 # --- Secrets/Env Variables ---
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 APK_URL = os.environ.get("APK_URL")
-VIP_CHANNEL_URL = os.environ.get("VIP_CHANNEL_URL") # Yeh link use hoga
+VIP_CHANNEL_URL = os.environ.get("VIP_CHANNEL_URL")
 BOT_USERNAME = os.environ.get("BOT_USERNAME")
 LEAVE_MSG_URL = os.environ.get("LEAVE_MSG_URL")
 WELCOME_VIDEO_URL = os.environ.get("WELCOME_VIDEO_URL") 
@@ -101,7 +101,7 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
         users = load_users()
         add_user(user, users)
 
-        # Welcome Video
+        # 1. Welcome Video
         welcome_text = (
             "💰How To Activate Vip Hack💰\n"
             "Pls Video Ko Pura Dekhna\n"
@@ -114,18 +114,10 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg = await context.bot.send_video(chat_id=user.id, video=WELCOME_VIDEO_URL, caption=welcome_text)
             VIDEO_FILE_ID = msg.video.file_id
 
-        # Send APK
+        # 2. Send APK
         await send_apk(user.id, context)
         
-        await asyncio.sleep(1.5)
-
-        # Third Message (Private Link replaced with Variable)
-        promo_msg = (
-            "VIP NUMBER SURESHOT CHANNEL JOIN FREEE 👇🏻👇🏻\n\n"
-            f"{VIP_CHANNEL_URL}\n"
-            f"{VIP_CHANNEL_URL}"
-        )
-        await context.bot.send_message(chat_id=user.id, text=promo_msg)
+        # NOTE: 3rd Message (Promo) has been removed from here.
 
     except Exception as e:
         print("Join error:", e)
@@ -195,4 +187,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
+                
