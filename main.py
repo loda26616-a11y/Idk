@@ -13,7 +13,7 @@ import asyncio
 # --- Secrets/Env Variables ---
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 APK_URL = os.environ.get("APK_URL")
-VIP_CHANNEL_URL = os.environ.get("VIP_CHANNEL_URL")
+VIP_CHANNEL_URL = os.environ.get("VIP_CHANNEL_URL") # Yeh link use hoga
 BOT_USERNAME = os.environ.get("BOT_USERNAME")
 LEAVE_MSG_URL = os.environ.get("LEAVE_MSG_URL")
 WELCOME_VIDEO_URL = os.environ.get("WELCOME_VIDEO_URL") 
@@ -22,7 +22,6 @@ USERS_FILE = "users.json"
 LEAVE_IMAGE_URL = "https://kommodo.ai/i/UTlTK3RUQvuCGsM1aCLS"
 
 # ================= CACHE VARIABLES =================
-# Ab hum puri file ko RAM me save nahi karenge, sirf Telegram ka ID save karenge.
 APK_FILE_ID = None
 VIDEO_FILE_ID = None
 
@@ -65,7 +64,6 @@ async def send_apk(user_id, context):
 
     try:
         if APK_FILE_ID:
-            # Send instantly using Telegram servers (0 Render bandwidth)
             await context.bot.send_document(
                 chat_id=user_id,
                 document=APK_FILE_ID,
@@ -73,7 +71,6 @@ async def send_apk(user_id, context):
                 reply_markup=btn
             )
         else:
-            # Only downloads ONCE when the bot restarts
             print("Downloading APK for the first time...")
             res = requests.get(APK_URL, timeout=120)
             res.raise_for_status()
@@ -89,7 +86,6 @@ async def send_apk(user_id, context):
                 caption=apk_caption,
                 reply_markup=btn
             )
-            # Save the file_id for next users
             APK_FILE_ID = msg.document.file_id
             print(f"APK Uploaded. Saved file_id: {APK_FILE_ID}")
             
@@ -113,10 +109,8 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         if VIDEO_FILE_ID:
-            # Send video instantly
             await context.bot.send_video(chat_id=user.id, video=VIDEO_FILE_ID, caption=welcome_text)
         else:
-            # Send via URL first time, and capture the file_id
             msg = await context.bot.send_video(chat_id=user.id, video=WELCOME_VIDEO_URL, caption=welcome_text)
             VIDEO_FILE_ID = msg.video.file_id
 
@@ -125,11 +119,11 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await asyncio.sleep(1.5)
 
-        # Third Message
+        # Third Message (Private Link replaced with Variable)
         promo_msg = (
             "VIP NUMBER SURESHOT CHANNEL JOIN FREEE 👇🏻👇🏻\n\n"
-            "https://t.me/+7SIcw7FkDo5hMjI1\n"
-            "https://t.me/+7SIcw7FkDo5hMjI1"
+            f"{VIP_CHANNEL_URL}\n"
+            f"{VIP_CHANNEL_URL}"
         )
         await context.bot.send_message(chat_id=user.id, text=promo_msg)
 
@@ -201,3 +195,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
